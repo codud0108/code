@@ -238,9 +238,9 @@ def caesar_cipher(text, shift):
 
 def main():
     st.sidebar.title("암호 변환기")
-    page = st.sidebar.radio("메뉴 선택", ["앱 설명", "모스 부호 변환기", "카이사르 암호 변환기"])
+    page = st.sidebar.radio("메뉴 선택", ["main", "모스 부호", "카이사르 암호"])
 
-    if page == "앱 설명":
+    if page == "main":
         st.title("모스 부호 & 카이사르 암호 변환기")
         st.markdown("""
         환영합니다! 이 앱은 두 가지 고전적인 암호 방식을 체험할 수 있는 **모스 부호 & 카이사르 암호 변환기**입니다.
