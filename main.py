@@ -153,8 +153,11 @@ QUIZ_CHAR_LIST_KOREAN = [c for c in QUIZ_CHAR_LIST_ALL if 'ㄱ' <= c <= 'ㅣ']
 QUIZ_CHAR_LIST_ENGLISH = [c for c in QUIZ_CHAR_LIST_ALL if 'A' <= c <= 'Z' or '0' <= c <= '9']
 
 # 단어 맞추기 모드에서 사용할 실제 단어 목록
-KOREAN_WORDS = ['바다', '하늘', '친구', '학교', '고양이', '사과', '나무', '도시', '기차', '시간', '사랑', '미래', '음악', '운동']
-ENGLISH_WORDS = ['HELLO', 'WORLD', 'QUIZ', 'CODE', 'MORSE', 'SIGNAL', 'FLASH', 'GREAT', 'TEST', 'EASY', 'APPLE', 'WATER', 'BRIGHT']
+# 3~10자(자모/알파벳) 길이를 만족하는 단어들을 추가 및 사용합니다.
+KOREAN_WORDS = ['바다', '하늘', '친구', '학교', '고양이', '사과', '나무', '도시', '기차', '시간', '사랑', '미래', '음악', '운동', 
+                '컴퓨터', '인터넷', '도서관', '텔레비전', '도전', '지구과학', '우주비행']
+ENGLISH_WORDS = ['HELLO', 'WORLD', 'QUIZ', 'CODE', 'MORSE', 'SIGNAL', 'FLASH', 'GREAT', 'TEST', 'EASY', 'APPLE', 'WATER', 'BRIGHT', 
+                 'STREAMLIT', 'DEVELOPER', 'CHALLENGE', 'COMMUNITY', 'PROGRAM', 'ENCRYPT', 'DECRYPTING']
 
 def generate_quiz_question(mode="char"):
     """ 퀴즈 질문 (모스 부호)와 정답 (텍스트)를 생성합니다. """
@@ -170,17 +173,25 @@ def generate_quiz_question(mode="char"):
     
     elif mode == "word":
         # 단어 모드: 실제 단어 사용
-        is_korean = random.choice([True, False])
-        if is_korean:
-            word = random.choice(KOREAN_WORDS)
-            # 완성형 단어를 자모 시퀀스로 분해한 것이 정답이 됩니다.
-            text_word = "".join([decompose_hangul(c) for c in word]) 
-            language = f'Korean Word (정답: 자모 시퀀스 - 예: {word} -> {text_word})'
-        else:
-            word = random.choice(ENGLISH_WORDS)
-            text_word = word # 영문 단어는 그대로 정답
-            language = 'English Word (영문/숫자)'
+        
+        # 3~10 글자(자모/알파벳) 길이를 만족하는 단어를 선택할 때까지 반복
+        while True:
+            is_korean = random.choice([True, False])
             
+            if is_korean:
+                word = random.choice(KOREAN_WORDS)
+                # 완성형 단어를 자모 시퀀스로 분해한 것이 정답이 됩니다.
+                text_word = "".join([decompose_hangul(c) for c in word]) 
+                language = f'Korean Word (정답: 자모 시퀀스 - 예: {word} -> {text_word})'
+            else:
+                word = random.choice(ENGLISH_WORDS)
+                text_word = word # 영문 단어는 그대로 정답
+                language = 'English Word (영문/숫자)'
+
+            # 모스 부호 시퀀스 길이 (자모/알파벳 수)가 3~10인지 확인
+            if 3 <= len(text_word) <= 10:
+                break
+                
         morse_codes = []
         for char in text_word:
             # 퀴즈 생성을 위해 MORSE_CODE_DICT에 있는 문자만 사용해야 합니다.
