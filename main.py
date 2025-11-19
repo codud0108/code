@@ -13,8 +13,7 @@ MORSE_CODE_DICT = {
     'ㅏ': '.', 'ㅑ': '..', 'ㅓ': '-', 'ㅕ': '...', 'ㅗ': '.-', 'ㅛ': '.-.', 
     'ㅜ': '..-', 'ㅠ': '..-.', 'ㅡ': '-.--', 'ㅣ': '.-.',
     # 한글 이중모음 (퀴즈의 단순성을 위해 일부만 사용)
-    'ㅐ': '.-.-', 'ㅔ': '-...-', 'ㅚ': '.-..-', 'ㅟ': '..--', 'ㅢ': '-..-', 'ㅒ': '..--.', 'ㅖ': '...-',
-
+    'ㅐ': '.-.-', 'ㅔ': '-...-', 'ㅚ': '.-..-', 'ㅟ': '..--', 'ㅢ': '.-..-', 'ㅒ': '..--.', 'ㅖ': '...-', # 'ㅢ' 수정
     # 영문 알파벳
     'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
     'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
@@ -90,69 +89,6 @@ def decompose_hangul(char):
     else:
         return char
 
-# --- 자모를 완성된 한글로 합치는 함수 (변환기 출력에서만 사용하지 않음) ---
-def combine_hangul(jamo_sequence):
-    """ 분해된 자모 문자열을 완성된 한글 글자로 조합합니다. """
-    UNICODE_BASE = 0xAC00
-    result = []
-    temp_syllable = []
-
-    for char in jamo_sequence:
-        ch_idx = C_MAP.get(char)
-        ju_idx = V_MAP.get(char)
-        fo_idx = F_MAP.get(char)
-
-        # 1. 비-자모 문자 처리
-        if ch_idx is None and ju_idx is None and (fo_idx is None or fo_idx == 0):
-            if temp_syllable:
-                ch_jamo, ju_jamo, fo_jamo = temp_syllable + [''] * (3 - len(temp_syllable))
-                if ju_jamo:
-                    result.append(chr(UNICODE_BASE + (C_MAP[ch_jamo] * 21 * 28) + (V_MAP[ju_jamo] * 28) + F_MAP[fo_jamo]))
-                else:
-                    result.append(ch_jamo) 
-                temp_syllable.clear()
-            result.append(char)
-            continue
-        
-        # 2. 초성 (Choseong)
-        if ch_idx is not None:
-            if not temp_syllable or len(temp_syllable) == 3:
-                temp_syllable = [char]
-            elif len(temp_syllable) == 1:
-                result.append(temp_syllable.pop(0))
-                temp_syllable.append(char)
-            elif len(temp_syllable) == 2:
-                ch_jamo, ju_jamo = temp_syllable
-                result.append(chr(UNICODE_BASE + (C_MAP[ch_jamo] * 21 * 28) + (V_MAP[ju_jamo] * 28) + 0))
-                temp_syllable = [char]
-        
-        # 3. 중성 (Jungseong)
-        elif ju_idx is not None:
-            if len(temp_syllable) == 1:
-                temp_syllable.append(char)
-            else:
-                result.append(chr(UNICODE_BASE + (C_MAP['ㅇ'] * 21 * 28) + (ju_idx * 28) + 0))
-                temp_syllable.clear()
-        
-        # 4. 종성 (Jongseong)
-        elif fo_idx is not None and fo_idx != 0:
-            if len(temp_syllable) == 2:
-                temp_syllable.append(char)
-            else:
-                result.append(char)
-                temp_syllable.clear()
-
-    if temp_syllable:
-        ch_jamo, ju_jamo, fo_jamo = temp_syllable + [''] * (3 - len(temp_syllable))
-        if ju_jamo:
-            result.append(chr(UNICODE_BASE + (C_MAP[ch_jamo] * 21 * 28) + (V_MAP[ju_jamo] * 28) + F_MAP[fo_jamo]))
-        else:
-            result.append(ch_jamo)
-
-    return ''.join(result)
-
-
-# --- 모스 부호 변환 함수 ---
 def text_to_morse(text):
     """ 텍스트를 모스 부호로 변환합니다. """
     morse_code = []
@@ -162,6 +98,7 @@ def text_to_morse(text):
     for char in decomposed_text:
         upper_char = char.upper()
         if upper_char in MORSE_CODE_DICT:
+            # -를 _로 변환하여 출력 (Streamlit 코드 블록에서 보기 쉽게)
             morse_code.append(MORSE_CODE_DICT[upper_char].replace('-', '_'))
         elif upper_char == ' ':
             morse_code.append('/')
@@ -210,9 +147,8 @@ def caesar_cipher(text, shift):
     return result
 
 # --- 퀴즈 관련 데이터 및 함수 ---
-# 퀴즈에서 사용할 문자 리스트 (변환기에 포함된 문자 중 문장 부호 등 일부 제외)
 QUIZ_CHAR_LIST_ALL = list(MORSE_CODE_DICT.keys())
-QUIZ_CHAR_LIST_KOREAN = [c for c in QUIZ_CHAR_LIST_ALL if 'ㄱ' <= c <= 'ㅣ' and c not in COMPLEX_JAMO_DICT.keys()] # 복합 자모는 제외
+QUIZ_CHAR_LIST_KOREAN = [c for c in QUIZ_CHAR_LIST_ALL if 'ㄱ' <= c <= 'ㅣ']
 QUIZ_CHAR_LIST_ENGLISH = [c for c in QUIZ_CHAR_LIST_ALL if 'A' <= c <= 'Z' or '0' <= c <= '9']
 
 def generate_quiz_question(mode="char"):
@@ -239,7 +175,6 @@ def generate_quiz_question(mode="char"):
         for char in text_word:
             morse_codes.append(MORSE_CODE_DICT[char].replace('-', '_'))
                 
-        # 모스 부호는 글자별로 한 칸 띄어서 표시
         morse_word = ' '.join(morse_codes) 
         return morse_word, text_word
 
@@ -249,103 +184,136 @@ def set_quiz_mode(mode):
     st.session_state.quiz_score = 0
     st.session_state.quiz_total = 0
     st.session_state.feedback = ""
-    st.session_state.user_answer_input = "" # 입력 초기화
-    new_question()
+    st.session_state.answer_checked = False
+    new_question(initial=True) # 초기 질문 생성
 
-def new_question():
+def new_question(initial=False):
     """ 새로운 퀴즈 문제를 생성하고 상태를 업데이트합니다. """
+    # 퀴즈 모드가 설정되지 않았으면 기본값 설정
+    if 'quiz_mode' not in st.session_state:
+         st.session_state.quiz_mode = 'char'
+         
     morse, answer = generate_quiz_question(st.session_state.quiz_mode)
     st.session_state.morse_question = morse
     st.session_state.answer_text = answer
     st.session_state.feedback = ""
-    st.session_state.user_answer_input = ""
+    st.session_state.answer_checked = False
+    if not initial:
+         # 다음 문제로 넘어갈 때만 입력창의 내용을 지우기 위해 session_state에서 값 삭제
+         if 'user_answer_input_value' in st.session_state:
+             del st.session_state.user_answer_input_value
 
-def check_answer():
+def check_answer(user_input_value):
     """ 사용자 입력을 확인하고 피드백을 제공합니다. """
-    user_input = st.session_state.user_answer_input.strip().upper()
+    user_input = user_input_value.strip().upper()
     correct_answer = st.session_state.answer_text.upper()
     
-    # 입력이 없으면 확인하지 않음
     if not user_input:
-        return 
+        st.session_state.feedback = "⚠️ 정답을 입력해 주세요."
+        return
 
+    # 정답 확인 시도 횟수 증가
     st.session_state.quiz_total += 1
+    st.session_state.answer_checked = True # 정답 확인 완료 플래그 설정
     
     if user_input == correct_answer:
         st.session_state.quiz_score += 1
-        st.session_state.feedback = f"✅ 정답입니다! 다음 문제로 넘어갑니다."
+        st.session_state.feedback = f"✅ 정답입니다! : {correct_answer}"
     else:
-        st.session_state.feedback = f"❌ 오답입니다. 정답은 '{correct_answer}'입니다."
-    
-    # 0.5초 대기 후 다음 문제 생성 (Streamlit에서는 sleep 사용 불가, 즉시 다음 문제 생성)
-    new_question()
+        # 오답 시 정답 표시
+        st.session_state.feedback = f"❌ 오답입니다. 정답은 **'{correct_answer}'**입니다."
+        
+    # 사용자 입력 값을 상태에 저장하여 '정답 확인' 후에도 입력창에 남아있도록 함
+    st.session_state.user_answer_input_value = user_input_value
+
 
 def morse_quiz_page():
     """ 모스 부호 퀴즈 페이지 UI를 구성합니다. """
     st.title("🎧 모스 부호 퀴즈")
-    st.markdown("랜덤으로 생성된 모스 부호를 보고 해당하는 문자를 맞춰보세요.")
+    st.markdown("랜덤으로 생성된 모스 부호를 보고 해당하는 문자를 맞춰보세요. **영문/한글 자모를 띄어쓰기 없이 연속으로 입력하세요.**")
     
     # Session State 초기화
     if 'quiz_mode' not in st.session_state:
-        st.session_state.quiz_mode = 'char'
-    if 'morse_question' not in st.session_state:
-        st.session_state.morse_question = '?'
-        st.session_state.answer_text = '?'
-    if 'quiz_score' not in st.session_state:
-        st.session_state.quiz_score = 0
-    if 'quiz_total' not in st.session_state:
-        st.session_state.quiz_total = 0
-    if 'feedback' not in st.session_state:
-        st.session_state.feedback = ""
-        
+        set_quiz_mode('char')
+    if 'morse_question' not in st.session_state or st.session_state.morse_question == '?':
+        new_question(initial=True)
+    if 'user_answer_input_value' not in st.session_state:
+         st.session_state.user_answer_input_value = ""
+
+
     # --- 모드 선택 버튼 ---
     st.subheader("모드 선택")
     col_mode1, col_mode2 = st.columns(2)
+    current_mode = st.session_state.quiz_mode
+
     with col_mode1:
-        # 이미 선택된 모드이면 버튼 비활성화
-        if st.session_state.quiz_mode == 'char':
-            st.button("글자 맞추기 (Character Mode)", disabled=True)
-        else:
-            if st.button("글자 맞추기 (Character Mode)"):
-                set_quiz_mode('char')
+        if st.button("글자 맞추기 (Character Mode)", disabled=(current_mode == 'char'), key="btn_mode_char"):
+            set_quiz_mode('char')
+            st.rerun()
     with col_mode2:
-        if st.session_state.quiz_mode == 'word':
-            st.button("단어 맞추기 (Word Mode)", disabled=True)
-        else:
-            if st.button("단어 맞추기 (Word Mode)"):
-                set_quiz_mode('word')
+        if st.button("단어 맞추기 (Word Mode)", disabled=(current_mode == 'word'), key="btn_mode_word"):
+            set_quiz_mode('word')
+            st.rerun()
+            
+    # --- 컨트롤 버튼 ---
+    st.subheader("컨트롤")
+    col_control, col_reset = st.columns([3, 1])
     
-    # 초기 질문 생성
-    if st.session_state.quiz_total == 0 and st.session_state.morse_question == '?':
-        new_question()
+    with col_reset:
+         if st.button("점수 초기화", key="btn_reset_quiz"):
+             set_quiz_mode(st.session_state.quiz_mode)
+             st.rerun()
+
             
     # --- 점수 및 현재 모드 표시 ---
     st.subheader(f"점수: {st.session_state.quiz_score} / {st.session_state.quiz_total}")
-    st.markdown(f"현재 모드: **{'글자 맞추기' if st.session_state.quiz_mode == 'char' else '단어 맞추기'}**")
+    st.markdown(f"현재 모드: **{'글자 맞추기' if current_mode == 'char' else '단어 맞추기'}**")
 
     # --- 문제 표시 ---
     st.markdown("---")
     st.subheader("문제:")
-    st.markdown(f"**길이: {len(st.session_state.answer_text)} {'글자' if st.session_state.quiz_mode == 'char' else '단어'}**")
+    st.markdown(f"**길이: {len(st.session_state.answer_text)} {'글자' if current_mode == 'char' else '단어'}**")
     st.code(st.session_state.morse_question, language='text')
 
     # --- 사용자 입력 및 피드백 ---
-    input_label = "정답 입력 (한글 자모 또는 영문):"
-    help_text = "정답을 입력하고 Enter를 누르거나, 입력창 밖을 클릭하세요."
-    if st.session_state.quiz_mode == 'word':
-        input_label = "정답 입력 (띄어쓰기 없는 연속된 한글 자모 또는 영문 단어):"
-        
-    # 'on_change'를 사용하여 입력이 완료되면 자동으로 정답 확인 및 다음 문제로 전환
-    st.text_input(input_label, 
-                  key="user_answer_input", 
-                  on_change=check_answer, 
-                  help=help_text)
+    input_label = "정답 입력 (띄어쓰기 없이):"
+    help_text = "정답을 입력 후 '정답 확인' 버튼을 누르세요."
     
+    # 입력 필드. 정답 확인 후에는 비활성화
+    user_input_value = st.text_input(
+        input_label, 
+        value=st.session_state.user_answer_input_value,
+        key="current_user_input", 
+        disabled=st.session_state.answer_checked, 
+        help=help_text
+    )
+
+    # 피드백 표시
     if st.session_state.feedback:
         if st.session_state.feedback.startswith("✅"):
             st.success(st.session_state.feedback)
+        elif st.session_state.feedback.startswith("❌"):
+            st.error(st.session_state.feedback, icon="🚨")
         else:
-            st.error(st.session_state.feedback)
+             st.warning(st.session_state.feedback)
+    
+    # 정답 확인 / 다음 문제 버튼
+    col_action1, col_action2 = st.columns(2)
+    
+    with col_action1:
+        if not st.session_state.answer_checked:
+            # 정답 확인 버튼
+            if st.button("정답 확인", key="btn_check_answer", use_container_width=True):
+                check_answer(user_input_value)
+                st.rerun()
+    
+    with col_action2:
+        if st.session_state.answer_checked:
+            # 다음 문제 버튼
+            if st.button("다음 문제", key="btn_next_question", use_container_width=True):
+                new_question()
+                st.rerun()
+
 
 # --- Streamlit 앱 UI 구성 ---
 
