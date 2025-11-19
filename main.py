@@ -2,7 +2,6 @@ import streamlit as st
 
 # --- 모스 부호 데이터 ---
 # 한글(자모), 숫자, 영문에 대한 모스 부호 사전
-# SKATS(Standard Korean Alphabet Transliteration System) 및 국제 모스 부호 기준
 MORSE_CODE_DICT = {
     # 한글 자음
     'ㄱ': '.-..', 'ㄴ': '--.', 'ㄷ': '-..', 'ㄹ': '...-', 'ㅁ': '--', 'ㅂ': '.--', 
@@ -37,12 +36,76 @@ MORSE_CODE_DICT = {
 REVERSE_MORSE_DICT = {v: k for k, v in MORSE_CODE_DICT.items()}
 
 
+# --- 한글 분해를 위한 데이터 ---
+CHOSEONG_LIST = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
+JUNGSEONG_LIST = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
+JONGSEONG_LIST = [
+    '', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 
+    'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'
+]
+
+# MORSE_CODE_DICT에 없는 복잡한 자모 분해 사전
+COMPLEX_JAMO_DICT = {
+    # 복합 모음
+    'ㅘ': 'ㅗㅏ', 'ㅙ': 'ㅗㅐ', 'ㅝ': 'ㅜㅓ', 'ㅞ': 'ㅜㅔ',
+    # 복합 자음 (받침)
+    'ㄳ': 'ㄱㅅ', 'ㄵ': 'ㄴㅈ', 'ㄶ': 'ㄴㅎ', 'ㄺ': 'ㄹㄱ', 'ㄻ': 'ㄹㅁ', 'ㄼ': 'ㄹㅂ',
+    'ㄽ': 'ㄹㅅ', 'ㄾ': 'ㄹㅌ', 'ㄿ': 'ㄹㅍ', 'ㅀ': 'ㄹㅎ', 'ㅄ': 'ㅂㅅ'
+}
+
+def decompose_hangul(char):
+    """
+    한글 한 글자를 자음/모음으로 분해합니다.
+    (예: '안' -> 'ㅇㅏㄴ', '삶' -> 'ㅅㅏㄹㅁ')
+    """
+    code = ord(char)
+    
+    # 1. 한글 음절 범위 (가-힣)인지 확인
+    if 0xAC00 <= code <= 0xD7A3:
+        code -= 0xAC00
+        
+        jongseong_index = code % 28
+        code //= 28
+        jungseong_index = code % 21
+        code //= 21
+        choseong_index = code
+        
+        ch = CHOSEONG_LIST[choseong_index]
+        ju = JUNGSEONG_LIST[jungseong_index]
+        jo = JONGSEONG_LIST[jongseong_index]
+        
+        # 2. 복잡한 자모(사전에 없는 것) 분해
+        if ju in COMPLEX_JAMO_DICT:
+            ju = COMPLEX_JAMO_DICT[ju]
+        if jo in COMPLEX_JAMO_DICT:
+            jo = COMPLEX_JAMO_DICT[jo]
+            
+        return ch + ju + jo
+        
+    # 2. 한글 자모 범위 (ㄱ-ㅣ)인지 확인
+    elif 'ㄱ' <= char <= 'ㅣ':
+        if char in COMPLEX_JAMO_DICT:
+            return COMPLEX_JAMO_DICT[char]
+        else:
+            return char
+            
+    # 3. 한글이 아닌 경우
+    else:
+        return char
+
 # --- 모스 부호 변환 함수 ---
 
 def text_to_morse(text):
-    """텍스트를 모스 부호로 변환합니다. 요청대로 '_'를 사용합니다."""
+    """텍스트를 모스 부호로 변환합니다. 한글 자동 분해 기능 추가."""
     morse_code = []
+    
+    decomposed_text = ""
     for char in text:
+        # 입력된 글자를 자모 단위로 분해
+        decomposed_text += decompose_hangul(char)
+        
+    # 분해된 자모를 하나씩 모스 부호로 변환
+    for char in decomposed_text:
         upper_char = char.upper()
         if upper_char in MORSE_CODE_DICT:
             # '-'를 '_'로 변환하여 추가
@@ -135,11 +198,11 @@ def main():
         가장 유명한 신호는 국제 조난 신호인 **'SOS' (`... ___ ...`)**입니다.
         """)
         
-        st.info("한글은 자음/모음 단위(예: 'ㅇㅏㄴㄴㅕㅇ')로 변환됩니다. '안녕'과 같이 완성된 글자는 지원하지 않습니다.")
+        st.info("완성된 한글('안녕')을 입력하면 자음/모음('ㅇㅏㄴㄴㅕㅇ')으로 자동 분해되어 변환됩니다.")
 
         # 텍스트 -> 모스 부호
         st.subheader("텍스트 → 모스 부호")
-        text_in = st.text_area("한글(자/모), 영문, 숫자 입력:", key="text_to_morse_in")
+        text_in = st.text_area("한글, 영문, 숫자 입력:", key="text_to_morse_in")
         if st.button("모스 부호로 변환", key="btn_text_to_morse"):
             if text_in:
                 morse_out = text_to_morse(text_in)
@@ -163,34 +226,4 @@ def main():
         st.title("🏛️ 카이사르 암호 변환기")
         st.markdown("""
         카이사르 암호(Caesar Cipher)는 가장 간단한 **치환 암호** 방식 중 하나입니다.
-        알파벳의 각 문자를 **일정한 거리(키 값)**만큼 밀어서 다른 문자로 바꿉니다.
-        
-        * **예시 (키 = 3):** 'HELLO' → 'KHOOR'
-        """)
-        st.info("카이사르 암호는 영문자(A-Z, a-z)만 변환합니다. 한글, 숫자, 기호는 변환되지 않고 그대로 유지됩니다.")
-
-        # 키 값 입력을 위한 슬라이더
-        shift_key = st.slider("키(Key) 선택 (얼마나 밀지 결정):", min_value=1, max_value=25, value=3)
-        
-        text_in_caesar = st.text_area("암호화 또는 복호화할 텍스트 입력:", key="caesar_text")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("암호화하기", key="btn_encrypt"):
-                if text_in_caesar:
-                    encrypted_text = caesar_cipher(text_in_caesar, shift_key, 'encrypt')
-                    st.text_area("암호화 결과:", value=encrypted_text, height=150, disabled=True, key="caesar_out_encrypt")
-                else:
-                    st.warning("암호화할 텍스트를 입력하세요.")
-                    
-        with col2:
-            if st.button("복호화하기", key="btn_decrypt"):
-                if text_in_caesar:
-                    decrypted_text = caesar_cipher(text_in_caesar, shift_key, 'decrypt')
-                    st.text_area("복호화 결과:", value=decrypted_text, height=150, disabled=True, key="caesar_out_decrypt")
-                else:
-                    st.warning("복호화할 텍스트를 입력하세요.")
-
-if __name__ == "__main__":
-    main()
+        알파벳의 각 문자를 **일정한 거리(키
