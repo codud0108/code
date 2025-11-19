@@ -182,7 +182,8 @@ def generate_quiz_question(mode="char"):
                 word = random.choice(KOREAN_WORDS)
                 # 완성형 단어를 자모 시퀀스로 분해한 것이 정답이 됩니다.
                 text_word = "".join([decompose_hangul(c) for c in word]) 
-                language = f'Korean Word (정답: 자모 시퀀스 - 예: {word} -> {text_word})'
+                # --- 수정된 부분: 정답 예시를 'ㅈㅏㅁㅗ ㅇㅖㅅㅣ'로 변경하여 정답 유출 방지 ---
+                language = f'Korean Word (정답: 자모 시퀀스 - 예: {word} -> ㅈㅏㅁㅗ ㅇㅖㅅㅣ)'
             else:
                 word = random.choice(ENGLISH_WORDS)
                 text_word = word # 영문 단어는 그대로 정답
