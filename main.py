@@ -226,4 +226,34 @@ def main():
         st.title("🏛️ 카이사르 암호 변환기")
         st.markdown("""
         카이사르 암호(Caesar Cipher)는 가장 간단한 **치환 암호** 방식 중 하나입니다.
-        알파벳의 각 문자를 **일정한 거리(키
+        알파벳의 각 문자를 **일정한 거리(키 값)**만큼 밀어서 다른 문자로 바꿉니다.
+        
+        * **예시 (키 = 3):** 'HELLO' → 'KHOOR'
+        """)
+        st.info("카이사르 암호는 영문자(A-Z, a-z)만 변환합니다. 한글, 숫자, 기호는 변환되지 않고 그대로 유지됩니다.")
+
+        # 키 값 입력을 위한 슬라이더
+        shift_key = st.slider("키(Key) 선택 (얼마나 밀지 결정):", min_value=1, max_value=25, value=3)
+        
+        text_in_caesar = st.text_area("암호화 또는 복호화할 텍스트 입력:", key="caesar_text")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("암호화하기", key="btn_encrypt"):
+                if text_in_caesar:
+                    encrypted_text = caesar_cipher(text_in_caesar, shift_key, 'encrypt')
+                    st.text_area("암호화 결과:", value=encrypted_text, height=150, disabled=True, key="caesar_out_encrypt")
+                else:
+                    st.warning("암호화할 텍스트를 입력하세요.")
+                    
+        with col2:
+            if st.button("복호화하기", key="btn_decrypt"):
+                if text_in_caesar:
+                    decrypted_text = caesar_cipher(text_in_caesar, shift_key, 'decrypt')
+                    st.text_area("복호화 결과:", value=decrypted_text, height=150, disabled=True, key="caesar_out_decrypt")
+                else:
+                    st.warning("복호화할 텍스트를 입력하세요.")
+
+if __name__ == "__main__":
+    main()
