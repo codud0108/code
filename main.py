@@ -31,7 +31,7 @@ MORSE_CODE_DICT = {
     '"': '.-..-.', '$': '...-..-', '@': '.--.-.',
 }
 
-# --- [수정] 모스 부호 역변환 사전 (한/영 분리) ---
+# --- 모스 부호 역변환 사전 (한/영 분리) ---
 REVERSE_MORSE_KOREAN_DICT = {}
 REVERSE_MORSE_ENGLISH_DICT = {}
 
@@ -39,28 +39,25 @@ REVERSE_MORSE_ENGLISH_DICT = {}
 KOREAN_JAMO_CHARS = (
     'ㄱ', 'ㄴ', 'ㄷ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅅ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ',
     'ㄲ', 'ㄸ', 'ㅃ', 'ㅆ', 'ㅉ',
-    'ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ',
-    'ㅐ', 'ㅔ', 'ㅚ', 'ㅟ', 'ㅢ', 'ㅒ', 'ㅖ'
+    'ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'
 )
 
 for char, code in MORSE_CODE_DICT.items():
     if char in KOREAN_JAMO_CHARS:
-        # 겹치는 한글 자모가 있는지 확인 (예: '...-'는 'ㄹ'과 'ㅖ')
+        # 겹치는 한글 자모가 있는지 확인 (예: '.-.'는 'R'과 'ㅣ'인데, 'ㅣ'는 한글에 포함)
         if code in REVERSE_MORSE_KOREAN_DICT:
             REVERSE_MORSE_KOREAN_DICT[code] += f'/{char}'
         else:
             REVERSE_MORSE_KOREAN_DICT[code] = char
     else:
-        # 겹치는 영문/기호가 있는지 확인 (예: '.-.'는 'R'과 'ㅣ')
-        # 위에서 'ㅣ'가 한글로 분류되었으므로 'R'만 남음
+        # 영문/기호/숫자
         if code in REVERSE_MORSE_ENGLISH_DICT:
              REVERSE_MORSE_ENGLISH_DICT[code] += f'/{char}'
         else:
             REVERSE_MORSE_ENGLISH_DICT[code] = char
 
 
-# --- 한글 분해를 위한 데이터 ---
-# (기존과 동일)
+# --- 한글 분해/합성을 위한 데이터 ---
 CHOSEONG_LIST = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
 JUNGSEONG_LIST = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
 JONGSEONG_LIST = [
@@ -72,12 +69,13 @@ COMPLEX_JAMO_DICT = {
     'ㄳ': 'ㄱㅅ', 'ㄵ': 'ㄴㅈ', 'ㄶ': 'ㄴㅎ', 'ㄺ': 'ㄹㄱ', 'ㄻ': 'ㄹㅁ', 'ㄼ': 'ㄹㅂ',
     'ㄽ': 'ㄹㅅ', 'ㄾ': 'ㄹㅌ', 'ㄿ': 'ㄹㅍ', 'ㅀ': 'ㄹㅎ', 'ㅄ': 'ㅂㅅ'
 }
+C_MAP = {c: i for i, c in enumerate(CHOSEONG_LIST)}
+V_MAP = {v: i for i, v in enumerate(JUNGSEONG_LIST)}
+F_MAP = {f: i for i, f in enumerate(JONGSEONG_LIST)}
+
 
 def decompose_hangul(char):
-    """
-    한글 한 글자를 자음/모음으로 분해합니다.
-    (예: '안' -> 'ㅇㅏㄴ', '삶' -> 'ㅅㅏㄹㅁ')
-    """
+    """ 한글 한 글자를 자음/모음으로 분해합니다. (기존과 동일) """
     code = ord(char)
     if 0xAC00 <= code <= 0xD7A3:
         code -= 0xAC00
@@ -89,10 +87,8 @@ def decompose_hangul(char):
         ch = CHOSEONG_LIST[choseong_index]
         ju = JUNGSEONG_LIST[jungseong_index]
         jo = JONGSEONG_LIST[jongseong_index]
-        if ju in COMPLEX_JAMO_DICT:
-            ju = COMPLEX_JAMO_DICT[ju]
-        if jo in COMPLEX_JAMO_DICT:
-            jo = COMPLEX_JAMO_DICT[jo]
+        if ju in COMPLEX_JAMO_DICT: ju = COMPLEX_JAMO_DICT[ju]
+        if jo in COMPLEX_JAMO_DICT: jo = COMPLEX_JAMO_DICT[jo]
         return ch + ju + jo
     elif 'ㄱ' <= char <= 'ㅣ':
         if char in COMPLEX_JAMO_DICT:
@@ -102,11 +98,84 @@ def decompose_hangul(char):
     else:
         return char
 
-# --- 모스 부호 변환 함수 ---
+# --- 자모를 완성된 한글로 합치는 함수 ---
+def combine_hangul(jamo_sequence):
+    """
+    분해된 자모 문자열을 완성된 한글 글자로 조합합니다.
+    (예: "ㅇㅏㄴㄴㅕㅇ" -> "안녕")
+    """
+    UNICODE_BASE = 0xAC00
+    result = []
+    temp_syllable = []  # [초성, 중성, 종성] (최대 3개)
 
+    for char in jamo_sequence:
+        ch_idx = C_MAP.get(char)
+        ju_idx = V_MAP.get(char)
+        fo_idx = F_MAP.get(char)
+
+        # 1. 비-자모 문자 (공백, 영문, 기호 등)
+        if ch_idx is None and ju_idx is None and (fo_idx is None or fo_idx == 0):
+            # 버퍼에 남은 자모가 있으면 먼저 처리
+            if temp_syllable:
+                ch_jamo, ju_jamo, fo_jamo = temp_syllable + [''] * (3 - len(temp_syllable))
+                if ju_jamo: # C-V-F 또는 C-V
+                    result.append(chr(UNICODE_BASE + (C_MAP[ch_jamo] * 21 * 28) + (V_MAP[ju_jamo] * 28) + F_MAP[fo_jamo]))
+                else: # C 또는 V만 남은 경우 (V는 'ㅇ'으로 시작)
+                    result.append(ch_jamo) 
+                temp_syllable.clear()
+            result.append(char)
+            continue
+        
+        # 2. 초성 (Choseong)
+        if ch_idx is not None:
+            if not temp_syllable or len(temp_syllable) == 3:
+                # 버퍼 비었거나(새 시작) C-V-F 완료 상태: 새 초성으로 시작
+                temp_syllable.append(char)
+            elif len(temp_syllable) == 1:
+                # C + C (글자 아님): 이전 C를 독립 문자 처리, 새 초성 시작
+                result.append(temp_syllable.pop(0))
+                temp_syllable.append(char)
+            elif len(temp_syllable) == 2:
+                # C-V + C (새 글자 시작): 이전 C-V를 완성(종성X), 새 초성 시작
+                ch_jamo, ju_jamo = temp_syllable
+                result.append(chr(UNICODE_BASE + (C_MAP[ch_jamo] * 21 * 28) + (V_MAP[ju_jamo] * 28) + 0))
+                temp_syllable = [char]
+        
+        # 3. 중성 (Jungseong)
+        elif ju_idx is not None:
+            if len(temp_syllable) == 1:
+                # C + V: 중성 추가
+                temp_syllable.append(char)
+            else:
+                # V or V-V: 독립 글자 ('ㅇ' + V)
+                result.append(chr(UNICODE_BASE + (C_MAP['ㅇ'] * 21 * 28) + (ju_idx * 28) + 0))
+                temp_syllable.clear()
+        
+        # 4. 종성 (Jongseong)
+        elif fo_idx is not None and fo_idx != 0:
+            if len(temp_syllable) == 2:
+                # C-V + F: 종성 추가 (C-V-F)
+                temp_syllable.append(char)
+            else:
+                # F만 온 경우: 독립 문자로 처리
+                result.append(char)
+                temp_syllable.clear()
+
+
+    # 최종 버퍼 정리
+    if temp_syllable:
+        ch_jamo, ju_jamo, fo_jamo = temp_syllable + [''] * (3 - len(temp_syllable))
+        if ju_jamo:
+            result.append(chr(UNICODE_BASE + (C_MAP[ch_jamo] * 21 * 28) + (V_MAP[ju_jamo] * 28) + F_MAP[fo_jamo]))
+        else:
+            result.append(ch_jamo)
+
+    return ''.join(result)
+
+
+# --- 모스 부호 변환 함수 ---
 def text_to_morse(text):
-    """텍스트를 모스 부호로 변환합니다. 한글 자동 분해 기능 추가."""
-    # (기존과 동일)
+    """ 텍스트를 모스 부호로 변환합니다. (기존과 동일) """
     morse_code = []
     decomposed_text = ""
     for char in text:
@@ -121,43 +190,34 @@ def text_to_morse(text):
             morse_code.append('?')
     return ' '.join(morse_code)
 
-# --- [수정] 모스 부호 -> 텍스트 헬퍼 함수 ---
 def _morse_to_text_helper(morse_input, reverse_dict):
-    """모스 부호를 텍스트로 변환하는 헬퍼 함수."""
-    # 사용자가 입력한 '_'를 내부에서 사용하는 '-'로 다시 변환
+    """ 모스 부호를 텍스트로 변환하는 헬퍼 함수. (기존과 동일) """
     morse_input_normalized = morse_input.replace('_', '-')
-    
-    # ' / '를 기준으로 단어 분리
     words = morse_input_normalized.split(' / ')
     decoded_text = []
     
     for word in words:
-        # 띄어쓰기 한 칸을 기준으로 문자(자모) 분리
         letters = word.split(' ')
         decoded_word = ''
         for letter in letters:
             if letter in reverse_dict:
                 decoded_word += reverse_dict[letter]
             elif letter == '':
-                continue # 연속된 공백 무시
+                continue
             else:
-                decoded_word += '?' # 사전에 없는 부호
+                decoded_word += '?'
         decoded_text.append(decoded_word)
         
-    # 단어 사이는 띄어쓰기로 합침
     return ' '.join(decoded_text)
 
 
-# --- [수정] 카이사르 암호 변환 함수 ---
+# --- 카이사르 암호 변환 함수 ---
 def caesar_cipher(text, shift):
     """
     텍스트에 대해 카이사르 암호를 적용합니다.
     shift: 음수 (왼쪽), 양수 (오른쪽)
     """
     result = ""
-    
-    # [수정] mode 파라미터 및 관련 로직 삭제
-    
     for char in text:
         # 영문 대문자인 경우
         if 'A' <= char <= 'Z':
@@ -197,7 +257,7 @@ def main():
         가장 유명한 신호는 국제 조난 신호인 **'SOS' (`... ___ ...`)**입니다.
         """)
         
-        st.info("완성된 한글('안녕')을 입력하면 자음/모음('ㅇㅏㄴㄴㅕㅇ')으로 자동 분해되어 변환됩니다.")
+        st.info("텍스트를 모스 부호로 변환할 때, 완성된 한글('안녕')은 자음/모음('ㅇㅏㄴㄴㅕㅇ')으로 자동 분해되어 변환됩니다.")
 
         # 텍스트 -> 모스 부호
         st.subheader("텍스트 → 모스 부호")
@@ -209,19 +269,24 @@ def main():
             else:
                 st.warning("변환할 텍스트를 입력하세요.")
 
-        # --- [수정] 모스 부호 -> 텍스트 UI ---
+        # --- 모스 부호 -> 텍스트 UI ---
         st.subheader("모스 부호 → 텍스트")
         morse_in = st.text_area("모스 부호 입력 ( . / _ 사용 )", 
                                 help="문자 구분: 띄어쓰기 1칸 | 단어 구분: ' / ' (띄어쓰기 후 / 띄어쓰기)",
                                 key="morse_to_text_in")
         if st.button("텍스트로 변환", key="btn_morse_to_text"):
             if morse_in:
-                # [수정] 한글/영문 분리하여 결과 표시
-                text_out_korean = _morse_to_text_helper(morse_in, REVERSE_MORSE_KOREAN_DICT)
-                st.text_area("변환 결과 (한글 자모):", value=text_out_korean, height=100, disabled=True)
+                # 1. 한글 자모 분리 결과 (예: ㅇㅏㄴㄴㅕㅇ)
+                text_out_jamo = _morse_to_text_helper(morse_in, REVERSE_MORSE_KOREAN_DICT)
+                # 2. 한글 완성형 조합 결과 (예: 안녕)
+                text_out_composed = combine_hangul(text_out_jamo)
+
+                st.text_area("변환 결과 (한글 완성형):", value=text_out_composed, height=70, disabled=True)
+                st.text_area("변환 결과 (한글 자모):", value=text_out_jamo, height=70, disabled=True)
                 
+                # 영문/숫자/기호 결과
                 text_out_english = _morse_to_text_helper(morse_in, REVERSE_MORSE_ENGLISH_DICT)
-                st.text_area("변환 결과 (영문/숫자/기호):", value=text_out_english, height=100, disabled=True)
+                st.text_area("변환 결과 (영문/숫자/기호):", value=text_out_english, height=70, disabled=True)
             else:
                 st.warning("변환할 모스 부호를 입력하세요.")
 
@@ -231,25 +296,42 @@ def main():
         카이사르 암호(Caesar Cipher)는 가장 간단한 **치환 암호** 방식 중 하나입니다.
         알파벳의 각 문자를 **일정한 거리(키 값)**만큼 밀어서 다른 문자로 바꿉니다.
         
-        * **예시 (키 = 3):** 'HELLO' → 'KHOOR'
-        * **예시 (키 = -3):** 'KHOOR' → 'HELLO'
+        아래 슬라이더로 이동할 칸 수(Key)를 선택한 뒤, **암호화** 또는 **복호화** 버튼을 눌러보세요!
         """)
         st.info("카이사르 암호는 영문자(A-Z, a-z)만 변환합니다. 한글, 숫자, 기호는 변환되지 않고 그대로 유지됩니다.")
 
-        # --- [수정] 카이사르 암호 UI ---
-        # 키 값 입력을 위한 슬라이더
-        shift_key = st.slider("키(Key) 선택 (음수: 왼쪽, 양수: 오른쪽):", min_value=-25, max_value=25, value=3)
+        # --- [수정] 키 값 입력을 1~25 양수로 설정하고 모드 선택을 통해 방향 결정 ---
+        shift_key = st.slider("키(Key) 선택 (이동할 칸 수):", min_value=1, max_value=25, value=3)
         
         text_in_caesar = st.text_area("변환할 텍스트 입력:", key="caesar_text")
         
-        # [수정] 암호화/복호화 버튼을 '변환하기' 버튼 하나로 통합
-        if st.button("변환하기", key="btn_transform"):
-            if text_in_caesar:
-                # [수정] mode 파라미터 없이 함수 호출
-                transformed_text = caesar_cipher(text_in_caesar, shift_key)
-                st.text_area("변환 결과:", value=transformed_text, height=150, disabled=True, key="caesar_out")
-            else:
-                st.warning("변환할 텍스트를 입력하세요.")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("암호화하기", key="btn_encrypt_caesar"):
+                if text_in_caesar:
+                    # 암호화: 양수 키 사용 (정방향 shift)
+                    encrypted_text = caesar_cipher(text_in_caesar, shift_key)
+                    st.text_area(f"암호화 결과 (Key: +{shift_key}):", 
+                                 value=encrypted_text, 
+                                 height=150, 
+                                 disabled=True, 
+                                 key="caesar_out_encrypt")
+                else:
+                    st.warning("암호화할 텍스트를 입력하세요.")
+                    
+        with col2:
+            if st.button("복호화하기", key="btn_decrypt_caesar"):
+                if text_in_caesar:
+                    # 복호화: 음수 키 사용 (역방향 shift)
+                    decrypted_text = caesar_cipher(text_in_caesar, -shift_key)
+                    st.text_area(f"복호화 결과 (Key: -{shift_key}):", 
+                                 value=decrypted_text, 
+                                 height=150, 
+                                 disabled=True, 
+                                 key="caesar_out_decrypt")
+                else:
+                    st.warning("복호화할 텍스트를 입력하세요.")
 
 if __name__ == "__main__":
     main()
