@@ -13,7 +13,7 @@ MORSE_CODE_DICT = {
     'ㅏ': '.', 'ㅑ': '..', 'ㅓ': '-', 'ㅕ': '...', 'ㅗ': '.-', 'ㅛ': '.-.', 
     'ㅜ': '..-', 'ㅠ': '..-.', 'ㅡ': '-.--', 'ㅣ': '.-.',
     # 한글 이중모음 (퀴즈의 단순성을 위해 일부만 사용)
-    'ㅐ': '.-.-', 'ㅔ': '-...-', 'ㅚ': '.-..-', 'ㅟ': '..--', 'ㅢ': '.-..-', 'ㅒ': '..--.', 'ㅖ': '...-', # 'ㅢ' 수정
+    'ㅐ': '.-.-', 'ㅔ': '-...-', 'ㅚ': '.-..-', 'ㅟ': '..--', 'ㅢ': '.-..-', 'ㅒ': '..--.', 'ㅖ': '...-', 
     # 영문 알파벳
     'A': '.-', 'B': '-...', 'C': '-.-.', 'D': '-..', 'E': '.', 'F': '..-.',
     'G': '--.', 'H': '....', 'I': '..', 'J': '.---', 'K': '-.-', 'L': '.-..',
@@ -147,9 +147,14 @@ def caesar_cipher(text, shift):
     return result
 
 # --- 퀴즈 관련 데이터 및 함수 ---
+# 퀴즈에서 사용할 문자 리스트
 QUIZ_CHAR_LIST_ALL = list(MORSE_CODE_DICT.keys())
 QUIZ_CHAR_LIST_KOREAN = [c for c in QUIZ_CHAR_LIST_ALL if 'ㄱ' <= c <= 'ㅣ']
 QUIZ_CHAR_LIST_ENGLISH = [c for c in QUIZ_CHAR_LIST_ALL if 'A' <= c <= 'Z' or '0' <= c <= '9']
+
+# 단어 맞추기 모드에서 사용할 실제 단어 목록
+KOREAN_WORDS = ['바다', '하늘', '친구', '학교', '고양이', '사과', '나무', '도시', '기차', '시간', '사랑', '미래', '음악', '운동']
+ENGLISH_WORDS = ['HELLO', 'WORLD', 'QUIZ', 'CODE', 'MORSE', 'SIGNAL', 'FLASH', 'GREAT', 'TEST', 'EASY', 'APPLE', 'WATER', 'BRIGHT']
 
 def generate_quiz_question(mode="char"):
     """ 퀴즈 질문 (모스 부호)와 정답 (텍스트)를 생성합니다. """
@@ -157,26 +162,38 @@ def generate_quiz_question(mode="char"):
         # 글자 모드: 단일 문자 (한글 자모, 영문, 숫자)
         char = random.choice(QUIZ_CHAR_LIST_KOREAN + QUIZ_CHAR_LIST_ENGLISH)
         morse = MORSE_CODE_DICT[char].replace('-', '_')
-        return morse, char
+        
+        is_korean = char in QUIZ_CHAR_LIST_KOREAN
+        language = 'Korean Jamo (한글 자모)' if is_korean else 'English (영문/숫자)'
+        
+        return morse, char, language
     
     elif mode == "word":
-        # 단어 모드: 여러 문자 조합 (3-6글자 길이)
+        # 단어 모드: 실제 단어 사용
         is_korean = random.choice([True, False])
         if is_korean:
-            char_pool = QUIZ_CHAR_LIST_KOREAN
-            word_len = random.randint(3, 5)
+            word = random.choice(KOREAN_WORDS)
+            # 완성형 단어를 자모 시퀀스로 분해한 것이 정답이 됩니다.
+            text_word = "".join([decompose_hangul(c) for c in word]) 
+            language = f'Korean Word (정답: 자모 시퀀스 - 예: {word} -> {text_word})'
         else:
-            char_pool = QUIZ_CHAR_LIST_ENGLISH
-            word_len = random.randint(3, 6)
-            
-        text_word = ''.join(random.choice(char_pool) for _ in range(word_len))
+            word = random.choice(ENGLISH_WORDS)
+            text_word = word # 영문 단어는 그대로 정답
+            language = 'English Word (영문/숫자)'
             
         morse_codes = []
         for char in text_word:
-            morse_codes.append(MORSE_CODE_DICT[char].replace('-', '_'))
+            # 퀴즈 생성을 위해 MORSE_CODE_DICT에 있는 문자만 사용해야 합니다.
+            if char in MORSE_CODE_DICT:
+                morse_codes.append(MORSE_CODE_DICT[char].replace('-', '_'))
+            else:
+                 # 단어 목록에 없는 문자가 포함될 경우를 대비한 처리 (실제로는 일어나지 않아야 함)
+                 morse_codes.append('?') 
                 
         morse_word = ' '.join(morse_codes) 
-        return morse_word, text_word
+        
+        # 언어 유형과 정답 텍스트 반환
+        return morse_word, text_word, language
 
 def set_quiz_mode(mode):
     """ 퀴즈 모드를 설정하고 점수를 초기화합니다. """
@@ -189,17 +206,16 @@ def set_quiz_mode(mode):
 
 def new_question(initial=False):
     """ 새로운 퀴즈 문제를 생성하고 상태를 업데이트합니다. """
-    # 퀴즈 모드가 설정되지 않았으면 기본값 설정
     if 'quiz_mode' not in st.session_state:
          st.session_state.quiz_mode = 'char'
          
-    morse, answer = generate_quiz_question(st.session_state.quiz_mode)
+    morse, answer, language = generate_quiz_question(st.session_state.quiz_mode)
     st.session_state.morse_question = morse
     st.session_state.answer_text = answer
+    st.session_state.quiz_language = language # 언어 유형 상태 추가
     st.session_state.feedback = ""
     st.session_state.answer_checked = False
     if not initial:
-         # 다음 문제로 넘어갈 때만 입력창의 내용을 지우기 위해 session_state에서 값 삭제
          if 'user_answer_input_value' in st.session_state:
              del st.session_state.user_answer_input_value
 
@@ -232,7 +248,7 @@ def morse_quiz_page():
     st.title("🎧 모스 부호 퀴즈")
     st.markdown("랜덤으로 생성된 모스 부호를 보고 해당하는 문자를 맞춰보세요. **영문/한글 자모를 띄어쓰기 없이 연속으로 입력하세요.**")
     
-    # Session State 초기화
+    # Session State 초기화 및 기본값 설정
     if 'quiz_mode' not in st.session_state:
         set_quiz_mode('char')
     if 'morse_question' not in st.session_state or st.session_state.morse_question == '?':
@@ -272,7 +288,9 @@ def morse_quiz_page():
     # --- 문제 표시 ---
     st.markdown("---")
     st.subheader("문제:")
-    st.markdown(f"**길이: {len(st.session_state.answer_text)} {'글자' if current_mode == 'char' else '단어'}**")
+    # 언어 유형 표시 (추가된 부분)
+    st.markdown(f"**유형:** {st.session_state.quiz_language}") 
+    st.markdown(f"**길이: {len(st.session_state.answer_text)} {'글자' if current_mode == 'char' else '자모/알파벳 수'}**")
     st.code(st.session_state.morse_question, language='text')
 
     # --- 사용자 입력 및 피드백 ---
@@ -282,7 +300,7 @@ def morse_quiz_page():
     # 입력 필드. 정답 확인 후에는 비활성화
     user_input_value = st.text_input(
         input_label, 
-        value=st.session_state.user_answer_input_value,
+        value=st.session_state.user_answer_input_value if 'user_answer_input_value' in st.session_state else "",
         key="current_user_input", 
         disabled=st.session_state.answer_checked, 
         help=help_text
