@@ -241,7 +241,7 @@ def main():
     page = st.sidebar.radio("메뉴 선택", ["앱 설명", "모스 부호 변환기", "카이사르 암호 변환기"])
 
     if page == "앱 설명":
-        st.title("💡 모스 부호 & 카이사르 암호 변환기")
+        st.title("모스 부호 & 카이사르 암호 변환기")
         st.markdown("""
         환영합니다! 이 앱은 두 가지 고전적인 암호 방식을 체험할 수 있는 **모스 부호 & 카이사르 암호 변환기**입니다.
 
@@ -250,7 +250,7 @@ def main():
         이 도구를 통해 암호학의 기본 원리를 재미있게 탐색해 보세요!
         """)
 
-    elif page == "모스 부호 변환기":
+    elif page == "모스 부호":
         st.title("Morse 부호 변환기")
         st.markdown("""
         모스 부호(Morse Code)는 짧은 신호(점, `.` )와 긴 신호(선, `_` )를 조합하여 문자를 나타내는 통신 방식입니다. 
@@ -279,7 +279,7 @@ def main():
                 # 1. 한글 자모 분리 결과 (예: ㅇㅏㄴㄴㅕㅇ)
                 text_out_jamo = _morse_to_text_helper(morse_in, REVERSE_MORSE_KOREAN_DICT)
                 
-                # [수정 반영] 한글 완성형 조합 결과를 제외하고 자모 분리 결과만 표시합니다.
+            
                 st.text_area("변환 결과 (한글 자모):", value=text_out_jamo, height=70, disabled=True)
                 
                 # 영문/숫자/기호 결과
@@ -288,8 +288,8 @@ def main():
             else:
                 st.warning("변환할 모스 부호를 입력하세요.")
 
-    elif page == "카이사르 암호 변환기":
-        st.title("🏛️ 카이사르 암호 변환기")
+    elif page == "카이사르 암호":
+        st.title("카이사르 암호 변환기")
         st.markdown("""
         카이사르 암호(Caesar Cipher)는 가장 간단한 **치환 암호** 방식 중 하나입니다.
         알파벳의 각 문자를 **일정한 거리(키 값)**만큼 밀어서 다른 문자로 바꿉니다.
