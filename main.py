@@ -58,6 +58,7 @@ for char, code in MORSE_CODE_DICT.items():
 
 
 # --- 한글 분해/합성을 위한 데이터 ---
+# (사용되지 않지만, 혹시 모를 재사용을 위해 함수와 데이터는 유지)
 CHOSEONG_LIST = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ']
 JUNGSEONG_LIST = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ']
 JONGSEONG_LIST = [
@@ -98,11 +99,10 @@ def decompose_hangul(char):
     else:
         return char
 
-# --- 자모를 완성된 한글로 합치는 함수 ---
+# --- 자모를 완성된 한글로 합치는 함수 (출력에서는 제외됨) ---
 def combine_hangul(jamo_sequence):
     """
     분해된 자모 문자열을 완성된 한글 글자로 조합합니다.
-    (예: "ㅇㅏㄴㄴㅕㅇ" -> "안녕")
     """
     UNICODE_BASE = 0xAC00
     result = []
@@ -278,10 +278,8 @@ def main():
             if morse_in:
                 # 1. 한글 자모 분리 결과 (예: ㅇㅏㄴㄴㅕㅇ)
                 text_out_jamo = _morse_to_text_helper(morse_in, REVERSE_MORSE_KOREAN_DICT)
-                # 2. 한글 완성형 조합 결과 (예: 안녕)
-                text_out_composed = combine_hangul(text_out_jamo)
-
-                st.text_area("변환 결과 (한글 완성형):", value=text_out_composed, height=70, disabled=True)
+                
+                # [수정 반영] 한글 완성형 조합 결과를 제외하고 자모 분리 결과만 표시합니다.
                 st.text_area("변환 결과 (한글 자모):", value=text_out_jamo, height=70, disabled=True)
                 
                 # 영문/숫자/기호 결과
@@ -296,42 +294,26 @@ def main():
         카이사르 암호(Caesar Cipher)는 가장 간단한 **치환 암호** 방식 중 하나입니다.
         알파벳의 각 문자를 **일정한 거리(키 값)**만큼 밀어서 다른 문자로 바꿉니다.
         
-        아래 슬라이더로 이동할 칸 수(Key)를 선택한 뒤, **암호화** 또는 **복호화** 버튼을 눌러보세요!
+        슬라이더로 키를 선택하세요: **양수**는 문자를 오른쪽(암호화)으로, **음수**는 왼쪽(복호화)으로 이동시킵니다.
         """)
         st.info("카이사르 암호는 영문자(A-Z, a-z)만 변환합니다. 한글, 숫자, 기호는 변환되지 않고 그대로 유지됩니다.")
 
-        # --- [수정] 키 값 입력을 1~25 양수로 설정하고 모드 선택을 통해 방향 결정 ---
-        shift_key = st.slider("키(Key) 선택 (이동할 칸 수):", min_value=1, max_value=25, value=3)
+        # --- [수정] 키 값을 +- 25로 설정하고 단일 버튼으로 처리 ---
+        shift_key = st.slider("키(Key) 선택 (음수: 왼쪽, 양수: 오른쪽):", min_value=-25, max_value=25, value=3)
         
         text_in_caesar = st.text_area("변환할 텍스트 입력:", key="caesar_text")
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("암호화하기", key="btn_encrypt_caesar"):
-                if text_in_caesar:
-                    # 암호화: 양수 키 사용 (정방향 shift)
-                    encrypted_text = caesar_cipher(text_in_caesar, shift_key)
-                    st.text_area(f"암호화 결과 (Key: +{shift_key}):", 
-                                 value=encrypted_text, 
-                                 height=150, 
-                                 disabled=True, 
-                                 key="caesar_out_encrypt")
-                else:
-                    st.warning("암호화할 텍스트를 입력하세요.")
-                    
-        with col2:
-            if st.button("복호화하기", key="btn_decrypt_caesar"):
-                if text_in_caesar:
-                    # 복호화: 음수 키 사용 (역방향 shift)
-                    decrypted_text = caesar_cipher(text_in_caesar, -shift_key)
-                    st.text_area(f"복호화 결과 (Key: -{shift_key}):", 
-                                 value=decrypted_text, 
-                                 height=150, 
-                                 disabled=True, 
-                                 key="caesar_out_decrypt")
-                else:
-                    st.warning("복호화할 텍스트를 입력하세요.")
+        if st.button("변환하기", key="btn_transform"):
+            if text_in_caesar:
+                transformed_text = caesar_cipher(text_in_caesar, shift_key)
+                # 결과창에 키 값에 따른 설명 추가
+                st.text_area(f"변환 결과 (Key: {shift_key}):", 
+                             value=transformed_text, 
+                             height=150, 
+                             disabled=True, 
+                             key="caesar_out")
+            else:
+                st.warning("변환할 텍스트를 입력하세요.")
 
 if __name__ == "__main__":
     main()
